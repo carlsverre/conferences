@@ -1,4 +1,4 @@
-# Keynotes
+# Morning Keynotes (Nov 8)
 
 ## A Cloud Native State of the Union
 Dan Kohn, Exec Director, Cloud Native Computing Foundation
@@ -161,6 +161,8 @@ Chris Wright, VP/Chief Technologist, RedHat
     - RH is investing in container security/verification so that companies can
       do compliance on containers
     - Integrated CI/CD pipeline
+
+# Talks (Nov 8)
 
 ## IFNW (If This Now What) - Orchestrating an Enterprise
 Michael Ward, Pearson
@@ -688,3 +690,68 @@ Madhu C.S. & Quinton Hoole, Google
           different availability zones
             - due to requirements on low latency for true HA (sync replication
               etc)
+
+# Evening Keynotes (Nov 8)
+
+## Cloud Native Architectures with an Open Source, Event Driven, Serverless Platform
+Daniel Krook, Senior Software Engineer, IBM
+
+(Will focus on OpenWhisk)
+
+- serverless architectures can have a more efficient cost model
+- he expects by this time next year there will be a lot more talk about
+  serverless architectures
+- IBM provides OpenWhisk
+    - cloud platform that executes code in response to events
+    - open source, currently Apache proposal
+- How does it work?
+    - triggers
+    - actions
+    - rules
+    - packages
+- Source: https://github.com/openwhisk/openwhisk
+
+## OpenTracing and Containers
+Ben Sigelman (LightStep)
+
+- microservices are here to stay, decoupled eng teams, CI, CD, etc
+- but they break legacy monitoring tools
+    - they are focused on single process or single machine monitoring
+- great monitoring tells stores about your system, process-scoped/machine-scoped
+  monitoring can't do that in the microservice world
+- distributed tracing is the solution
+- So why isn't tracing ubiquitous?
+    - tracing instrumentation has been too hard
+    - Lock-in is unacceptable
+    - Monkey patching doens't scale
+    - inconsistent APIs
+    - handoff woes - tracing libs in one project need to hand off to another
+- OpenTracing
+    - this is not something you run, its a standard
+    - think statsd as a protocol versus implementation
+    - various parts of the system emit opentracing blobs to opentracing
+      compatable servers
+    - decouples the protocol from the vender
+- Tracing (and Donut) Salons and Demos
+    - Donutsalon.com - donuts as a service
+    - load donutsalon.com on mobile device
+    - order a bunch of donuts
+    - very cool interface for showing traces on lightstep.com
+    - the stack is a set of microservices one of which takes a lock and blocks
+      the system
+- trace breadth + trace depth = quality tracing
+    - spans (breadth)
+        - log one span per request
+    - references (depth)
+        - we need RPC tracing thats
+            - turnkey / O(1) instrumentation
+            - portable
+            - zero touch
+- k8s and portable tracing
+    1. HTTP req enters app process
+    2. Extract() OpenTracing context
+    3. application does it's thing
+    4. App makes HTTP req via L7 proxy
+    5. Proxy Inject()s OpenTracing context
+    6. Proxy forwards to peer
+    7. GOTO 1
