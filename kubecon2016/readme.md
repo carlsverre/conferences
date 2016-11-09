@@ -1074,3 +1074,12 @@ Tim Hockin, Google
         - interesting way to fit a cluster to your problem space
         - he doesn't like it since he things its too restrictive and doesn't
           optimize utilization
+
+## Kube in Action: Examples from Google Container Engine
+Robert Bailey & Aparna Sinha, Google
+
+- interesting overview of GCE
+- demo showing off a useage of kube in GCE
+- launches a 10k req per second demo (nginx and basic http reqs)
+- uses two node pools to upgrade the underlying node types and kubernetes
+  Kubelet upgrades
