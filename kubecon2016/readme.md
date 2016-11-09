@@ -755,3 +755,19 @@ Ben Sigelman (LightStep)
     5. Proxy Inject()s OpenTracing context
     6. Proxy forwards to peer
     7. GOTO 1
+
+# Talks (Nov 9)
+
+## Monitoring MySQL and MongoDB with Prometheus
+Vadim Tkachenko, Percona
+
+- Agent/server model, agents forward metrics to storage
+- pmmdemo.percona.com
+- shows off query analytics on the demo site
+- when you select a single query you see a bunch of metrics for the query
+  aggregated over all query executions
+- looks like their query view also exposes the explain for the query but its
+  just direct, no re-writes.
+- beyond their query UI, they expose mysql metrics via Grafana and Orchestrator
+  for replication management
+    - https://github.com/outbrain/orchestrator
