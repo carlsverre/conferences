@@ -1083,3 +1083,86 @@ Robert Bailey & Aparna Sinha, Google
 - launches a 10k req per second demo (nginx and basic http reqs)
 - uses two node pools to upgrade the underlying node types and kubernetes
   Kubelet upgrades
+
+## Stateful Sets and You
+Clayton Coleman, OpenShift Architect, Red Hat
+
+- why stateful set?
+    - kube is a platform for building apps
+    - apps should always be up
+        - this doesn't actually happen
+    - two solutions for failure
+        - detect and recover
+        - run multiple copies
+    - kube is pretty good at recovery
+        - if you need 99.9% uptime, you have 8 hours of downtime per year
+            - thats fine for detect/recover
+        - microservices is hard - you might have a per app req of 99.9 uptime,
+          but if you depend in a bunch of 99.9 uptime apps you have less margin
+          for overall uptime
+    - if you are stateless, just run more so you never "go down"
+    - if you have state, this is a hard problem
+    - goal is to make running stateful distributed applications easy, safe,
+      fast, etc
+- Stateful Set
+    - pattern for replicating software that needs *identity* and *state*
+    - Three laws of stateful sets
+        1. don't loose data
+        2. fail safe, make sure its hard to accidentally loose state
+        3. maintain the members of a stateful set
+    - Focus on consistency > availability
+    - Each pod in a set is identical other than...
+        - each one has a unique name
+        - persistent storage associated with each name in the set
+        - never allow two pods in a set with the same name to run at the same
+          time
+    - If a pod in a StatefulSet needs to be restarted, it will have the same
+      identity and associated storage
+    - Upgrades to services to allow each member to find the other members
+        - added a feature to services where pods can report their owning service
+          and "name"
+- Pod Init container
+    - an init container is run in the pod before everything else to help with
+      bootstrapping
+    - for ex: wait until the master comes up before the leaf starts and
+      registers itself to the master
+- Demo!
+    - deploys zookeeper using a StatefulSet
+    - the pods are started serially?  at least its guaranteed that the first pod
+    - shows off restarting a pod in the set and see that it comes back up with
+      the same name and data
+      in the spec is started serially from the rest
+    - three zk pods come up in the set
+- Stateful Sets is still alpha
+    - because Kube will restart pods in the event of a network partition its
+      still possible for the system to run multiple copies of the same named pod
+      in a stateful set.
+    - in 1.5 the system will still evacuate the missing node, however it won't
+      delete any pods on that node until the user does that manually
+    - future work includes resolving partitions (fencing)
+        - keepalived
+        - shoot the other node in the head
+        - fencing
+            - rest of the cluster can act to limit the impact of missing that
+              node?
+            - basically ensuring that the storage can't be shared between the
+              pods even if two guys come up with the same name - this needs to
+              be sideloaded from the network such that it can happen in the
+              event of network failure
+- Whats next?
+    - beta in 1.5
+    - need to add the ability to update the set
+    - need more extensive tools for operating sets
+    - how much customization does your software need?
+    - tests and documentation
+    - local persistent storage would make some sets easier
+    - how to deal with software that needs stable IPs for members?
+        - memsql can use DNS names so we should be ok here...
+- questions
+    - startup sequence?
+        - statefulset always starts from lowest to highest index
+        - starts serially?
+    - can you query the number of pods in the stateful set from a pod in the set
+        - no
+        - because scaling - since you can scale up/down it would be easy for
+          certain distributed systems to form a split-brain
