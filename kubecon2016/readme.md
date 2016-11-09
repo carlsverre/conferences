@@ -771,3 +771,112 @@ Vadim Tkachenko, Percona
 - beyond their query UI, they expose mysql metrics via Grafana and Orchestrator
   for replication management
     - https://github.com/outbrain/orchestrator
+
+## Kubernetes Auth and Access Control
+Eric Chiang, CoreOS
+
+- Understanding users in Kubernetes
+    - who is talking to me
+    - "Kubernetes doesn't have users"
+    - users are just strings associated with a request through credentials
+    - api server supports different auth plugins
+        - webhooks, x509 client auth, password files, etc
+        - you can use more than one
+    - client cert
+        - most common
+        - each client has a cert which can be validated as coming from a
+            trusted CA
+        - client cert subject can contain group/user information for RBAC
+    - token file auth
+        - PSK style auth, assign user/groups from passwd like file
+    - webhook
+        - configure api server to call third party service to validate
+            bearer token
+        - for ex: this can be used to work with JWT or third party providers
+        - GKE uses this
+    - what do these have in common?
+        - the api can't configure these plugins, must be sideloaded onto the
+            cluster
+        - must be managed outside of kubernetes
+    - service accounts
+        - bearer tokens managed by k8s
+        - `kubectl create serviceaccount foobar`
+        - creates a serviceaccount and an attached secret
+        - secret includes a JWT + a ca crt + a b64 encoded namespace
+        - similar to instance profiles in ec2, you can associate a service
+            account with a pod
+- Authorization and RBAC
+    - multiple auth plugins supported
+    - the RBAC plugin is ported from OpenShift (RedHat)
+    - default policy, deny all
+    - each RBAC policy contains a subject, verb, resource and namespace
+        - user A can create pods in namespace B
+    - cannot
+        - refer to a single object in a namespace
+        - refer to arbitrary fields in a resource
+    - can
+        - refer to subresources (e.g. nodes/status)
+            - this user can edit the status of a node, but not its spec
+            - e.g. turn on/off, but not change defn
+    - roles vs bindings
+        - roles declare a set of powers
+        - bindings allow users/groups to have those powers
+    - RBAC: example
+        - secret-reader role: read on all secrets in the cluster
+        - secret-reader binding: binds the secret-reader group to the
+          secret-reader role
+    - ClusterRoles vs. Roles
+        - Roles can either be defined at the cluster level or a namespace level
+        - Cluster role
+            - manage one set of roles for the entire cluster, each role can be
+              used within a single namespace
+        - role
+            - allow namespace admins to admin roles for a single namespace?
+    - clusterrolebindings vs rolebindings
+        - clusterrolebindings grant a user power throughout the entire cluster
+            - can only refer to a cluster role
+        - rolebindings grant a user power within a namespace
+            - ex. give a cluster role called "admin-pods" to a user in a single
+              namespace
+    - RBAC is escalation safe
+        - in order to give someone access to a role you must have the powers
+          that role encompasses
+        - currently can get around this with a bootstrapping flag that lets
+          users sidestep this
+            - either run the api server with a no-auth flag or...
+            - the insecure port on the api server has no auth
+    - RBAC is landing in 1.5, and will include default roles and role bindings
+        - this solves the current bootstrapping issue where its annoying to
+          create the cluster admin
+- Other authorization plugins
+    - webook
+    - ABAC policy file
+        - this is extremely useful for bootstrapping
+        - eventually you want to migrate to RBAC though
+- "dex" demo
+    - https://github.com/coreos/dex
+    - OpenID connect server
+        - protocol is supported by Kube as an auth plugin
+    - federated logins
+        - can login to Dex through other identity providers
+    - just launched Dex v2
+    - OpenID Connect
+        - OAuth2
+        - OpenID Connect expands the response into a JWT which includes a payload
+        that contains things like groups, name, email, etc
+        - Dex adds an additional claim which is "groups" for Kubernetes
+        - Dex supports any OAuth2 provider
+        - how does Dex handle the redirect step?
+            - run another http server to allow the user to perform the redirect
+              loop
+            - this could be normalized into a little "auth-me" tool which spins
+              up the browser and lets the user login and get a token, then save
+              the token in a temp spot until it expires
+    - Demo
+        - dex is running in cluster as a deployment
+        - api server points at dex using the OID rules?
+        - dex is configured to login through github
+        - runs a http server which auths with github and then returns the token
+          to stdout
+        - captures the token in a variable, and then passes it in as a Bearer
+          header when authing to the api server
