@@ -880,3 +880,197 @@ Eric Chiang, CoreOS
           to stdout
         - captures the token in a variable, and then passes it in as a Bearer
           header when authing to the api server
+
+## Everything you ever wanted to know about resource scheduling, but were afraid to ask
+Tim Hockin, Google
+
+- Scheduling stuff given constraints is the main point of Kube
+- tons of resources available
+    - some are known, cpu, memory disk, networking, etc
+    - some are unknown, gps cards, custom hardware, etc
+- Mental model
+    - nodes produce capacity
+    - pods consume resources
+    - scheduler binds pods to nodes based on availability
+    - representing resources
+        - its attractive to think about resources as a multi-dimensional box
+        - for ex: memory vs CPU
+        - don't think about it this way since you can't pack in 2 dimensions
+          actually
+        - better to think about each dimension as an independent vector that we
+          can pack things into
+- Basic scheduling
+    - naive solution
+    - find space in cluster for each job that comes in
+    - sort nodes by least used first
+    - find first available space that fits and schedule the pod there
+- TODO: Optimizing rescheduler
+    - given we have the basic scheduler in place, we hit blocking operations
+      (have overall available capacity, but no single slot on a node that fits)
+    - can we reschedule existing pods in such a way that opens up availability
+      for the blocking operations?
+- some issues with basic scheduling
+    - full blocking, no slots are avilable on any node for the current pod
+    - stranded resources
+        - this happens when one of the vectors on the machine is full, ie all
+          the CPU is consumed but not all the memory
+- Many people are still asking the wrong questions.
+    - "how do I make sure my compute-intensive jobs don't get scheduled on my
+      database machine?"
+        - they should be asking -> how do I get resource isolation?
+    - "Why would I want multiple replicas on a node? Just give me the entire
+      node"
+        - sizing
+    - "How do I save some machines for important work, and use the rest for
+      batch?"
+        - utilization
+- Isolation
+    - Prevent apps from hurting each other
+    - make sure you get what you paid for
+    - currently missing
+        - mem bandwidth
+        - disk time
+        - cache
+        - network bandwidth
+    - predictability at extremes is important
+    - predictability > performance
+    - Google is investing in this area
+        - At Google they have built layer upon layer of isolation into their
+          envs
+    - When does isolation matter?
+        - when apps run away with a resource
+        - infinite loops, fork bombs, cache thrashing, etc
+    - counter measures in Linux
+        - infinite loops: limit cpu usage (shares/quota)
+        - memory leaks: mem limits, OOM
+        - disk hogs: disk quota
+        - fork bombs: process limits, process cgroup (enforce pids per cgroup)
+        - cache thrashing: LLC jails, cache segments
+            - Intel is investing here, trying to fix thrashing in the kernel
+    - Resource taxonomy
+        - compressible resources
+            - hold no state
+            - can be taken away quickly
+            - only affects performance when revoked
+            - e.g. CPU, disk time
+        - non-compressible resources
+            - hold state
+            - are slower to be taken away
+            - can fail when revoked
+            - e.g. memory, disk space
+    - Requests and Limits
+        - Request: amount of a resource allowed to be used with a strong guarantee
+        of avilability
+            - scheduler will not over-commit reqs
+        - Limit: max amount of a resource that can be used, regardless of guarantees
+            - scheduler ignoes limits
+        - QoS
+            - Guaranteed, Burstable, Best Effort
+        - behavior at (or near) limit depends on particular resource
+        - compressible resources, throttle usage
+        - non-compressible resources, reclaim
+            - failure means process death (OOM)
+        - Being correct is more important than optimal
+    - Coupled resources
+        - memory
+            - try to allocate, fail
+            - find some clean pages to release (consume CPU)
+            - write back some dirty pages (consume disk time)
+            - if needed, repeat
+        - how long should this be allowed to take?
+        - Really: this should be happening all the time
+    - At Google
+        - built a 2-minute hot list of pages used
+        - their kernel's actively free pages not used in the last two minutes
+    - What if I don't specify limits/reqs
+        - best effort isolation
+        - maybe get defaulted values
+        - get OOM killed randomly
+        - get CPU starved
+        - no isolation in extreme cases
+- Sizing
+    - how many replicas does my job need?
+    - how much CPU/RAM does it need?
+    - optimize for worst case?
+        - wasteful, expensive
+    - average case?
+        - high failure rate like OOM
+    - benchmark it!
+        - this is hard to do well
+        - accurate benchmarks are VERY hard or impossible
+    - Horz scaling
+        - adapting to load by scaling
+        - works well when combined with resource isolation
+            - especially if this gives your app predictability
+        - Kube type: HorizontalPodAutoscaler
+        - some things don't do well, e.g. services that scale memory with the
+          number of nodes in the cluster (on each node)
+    - what can we do?
+        - horz scaling is not enough
+        - resource needs change over time
+        - autopilot?
+            - collect stats, build model
+            - predict and react
+            - manage pods, deployments, jobs
+            - etc
+    - Autopilot in Borg
+        - most users use this at Google
+        - Kubernetes API is purpose-built for this sort of use case
+            - Why pods are unique entities
+        - we need a VerticalPodAutoscaler
+- Utilization
+    - Resource cost money
+    - wasted resources == wasted money
+    - you need to use as much of your capacity as possible
+    - selling it is not the same as using it
+    - How can we do better?
+        - utilization demands isolation
+        - people are inherintly cautious
+        - VPA and strong isolation should give enough confidence to provision
+          more tightly
+        - we need to do some kernel work to make this better
+- Some lessons from Borg
+    - Priority
+        - Low priority jobs get paused/killed in favor of high-priority jobs
+    - Quota
+        - if everyone is important, nobody is important
+    - Overcommit
+        - Hedge against rare events with lower QoS/SLA for some work
+        - once you know all the priorities you can overcommit certain resources
+          like Memory since you have policy in place to safely evict pods if the
+          higher pri pod needs it
+- Overcommit
+    - build a model of recent real usage per-container
+    - the delta between req and reality is idle, resell it with a lower SLA
+    - first-tier apps can always get what they paid for, kill second-tier apps
+    - use stats to decide how aggressive to be
+    - let the priority system deal with debris
+- Sirens-song: over-packing
+    - clusters need some room to operate
+    - ass you approach 100% bookings, consider what happens when things fail
+    - plan for some idle cap
+        - priorities & rescheduling can make this less expensive
+    - clusters are not good at 100%
+- Questions
+    - Is priority enough?
+        - right now its fairly binary and is used to protect critical systems
+          like DNS
+    - How to better design applications?
+        - problems we are talking about are not unique to Kube
+        - all scheduling systems have the resource problem
+        - the system should hide these issues and let any apps run
+    - Is the scheduler going to take into real-time resource consumption?
+        - in borg they call this Reservation?
+        - its a modeled metric that is tracked per workload
+    - Any aspirational features already in Borg?
+        - Yes, seems like everything talked about is from Borg
+        - can't port from Borg since Borg is 3-mil lines of C++
+        - Some people in google are interested in building these things inside
+          of Kube
+        - need to move away from Kube being a Google centric project
+    - Are using Node pools a good idea?
+        - idea is that you have a set of pools of different sized nodes and
+          schedule pods into a particular pool
+        - interesting way to fit a cluster to your problem space
+        - he doesn't like it since he things its too restrictive and doesn't
+          optimize utilization
