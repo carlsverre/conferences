@@ -566,4 +566,125 @@ David Arbuckle, Comcast VIPER
 ## Cluster Federation in Kubernetes: Past, Present and the Future
 Madhu C.S. & Quinton Hoole, Google
 
-- 
+- building blocks
+    - network traffic management
+    - resource placement
+- federation comes with some downsides
+    - bandwidth cost can be different, also faster to say inside one cluster
+      rather than spanning
+- location affinity
+    - strictly coupled pods/applications
+    - loosely coupled
+    - preferentially coupled
+    - important to have these distinctions
+- what exists
+    - talking about ubernetes
+    - 100% kube compat (missing some types)
+    - Q2 2016
+        - basic CP
+        - federated services
+            - multi-cloud, multi-region
+            - service discovery support
+                - dns supports "find the closest" shard of that
+                  service
+    - Q3 2016
+        - added support for
+            - ingress
+            - replicasets
+            - namespaces
+            - secrets
+        - event integration
+    - Q4 2016: easier installation, expanded API
+        - added support for
+            - deployments
+            - daemonsets
+            - jobs
+            - configmaps
+        - "much easier control plane installation tools"
+- The future
+    - Policy-based resource placement
+        - overlays policy over application reqs
+    - IAM support (RBAC)
+        - integration with external IAM, across multiple cloud providers
+    - Stateful Apps and federated persisted storage
+        - petset integration?
+        - cross-cluster data replication, snapshot + restore
+    - hybrid cloud federated ingress
+        - smart cross-cloud L7 load balancing
+    - private federated services
+        - private IPs and DNS
+    - GUI/Visual layer, etc...
+- Demo!
+    - created 9 kube clusters in three different regions (3 clusters in
+      different zones per region)
+    - he deployed the federated control plane (Ubernetes) over the clusters
+      already
+    - use the regular kubectl CLI to operate a ubernetes cluster since the api
+      layer is the same
+    - use kube context to make it easy to manage the entire system
+    - he has a script which writes the current GCE zone to a html file
+    - he mentions that configmaps would be useful to deploy his script to all
+      the machines
+        - but ubernetes doesn't support configmaps yet
+    - He adds the script as base64 encoded data as a secret so it is replicated
+      to all clusters via federated secrets
+    - Then he launches a replicaset of pods with 9 replicas (one pod should be
+      in each cluster)
+        - each pod runs nginx and busybox - busybox mounts the script and runs
+          it before exiting
+    - after deploying the RS he deploys a federated service (same spec api as
+      normal)
+        - this is replicated to each cluster automatically and the DNS records
+          are updated automatically since gcloud auto-exposes DNS for services
+    - he connects to a single cluster and sees the RS definition, which for each
+      cluster is only set to a desired size of 1
+    - next he wants to show that services in a cluster can connect to services
+      in another cluster just as if they were in a single cluster
+    - he launches busybox in a cluster and attaches to bash inside it
+        - inside this he wget's the service dns name, the service LB routes this
+          to the closest shard which is the nginx container running in the same
+          zone as BB
+        - if that shard was down, the service would have routed him to the next
+          closest shard
+            - how does it determine closeness?
+- back to slides
+- Cross cluster federation
+    - federated replicasets & global L7 ingress
+    - the speaker just goes through the previous demo example in slides really
+      quick
+- How to create a federated control plane
+    - Its just a regular kube application that connects back to Ubernetes API
+    - FCP is
+        - api sever
+            - service with public VIP
+            - deployment of replicas
+        - controller manager
+            - deployment of replicas
+        - data store (etcd), for registered clusters
+        - credentials for the underlying clusters
+        - federation config
+            - dns provider creds
+            - dns zone setup
+    - Clusters are defined as a regular kube resource
+        - federation/v1beta1
+        - kind: Cluster
+- Questions
+    - Security concerns with federation?
+        - story is pretty weak ATM
+        - currently federation doesn't really have sec
+        - a user provides creds for a cluster to the federation
+        - federation gives anyone access to the federation access to the
+          underlying cluster
+        - future will be multi-tenant users for ubernetes that might support
+          credential pushdown?
+    - Network policy, how to build ACLs for ingress
+        - they work through the kube API
+        - anything that kube supports that is reasonable to implement will
+          eventually be supported
+    - How will HA control plane work?
+        - multiple api servers backed by quorum of etcd hosts
+        - controller manager will support election/master etc
+        - common HA deployment will be multiple clusters in same region but in
+          different availability zones
+            - due to requirements on low latency for true HA (sync replication
+              etc)
