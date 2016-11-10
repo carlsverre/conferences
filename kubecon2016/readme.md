@@ -5,9 +5,7 @@ Dan Kohn, Exec Director, Cloud Native Computing Foundation
 
 - CN State of the Union
 - Cloud Native? What is it, where is it going?
-- History of the cloud
-    - Sun Microsystems profited before the cloud :)
-    - Startups, "We need 2 million dollars to get started with the hope that it
+- History of the cloud Sun Microsystems profited before the cloud :) Startups, "We need 2 million dollars to get started with the hope that it
       turns into something"
     - Launching a new app, buy hardware!
     - VMWare (2001)
@@ -1166,3 +1164,325 @@ Clayton Coleman, OpenShift Architect, Red Hat
         - no
         - because scaling - since you can scale up/down it would be easy for
           certain distributed systems to form a split-brain
+
+# Lightning Talks (Nov 9)
+
+## Open Container Initiative
+
+- OCI includes
+    - container specs
+    - open source tools
+    - open source reference implementation
+        - runc
+- OCI Certification Program
+    - OCI Certified Runtime
+    - OCI Certified Image
+
+## Say What? Your running the storage platform IN Kubernetes?
+Steve Watt, Red Hat
+
+- Storage SIG
+    - connecting Kube with storage platforms
+    - dynamic provisioning of storage classes
+- Running storage platforms *in* Kubernetes
+- Ex. GlusterFS
+    - scale out, software defined storage
+    - supports all of the Kube storage plugin layers out of the box
+    - Deployment Topology
+        - on each Kube node, at least three nodes need to have an available
+          block device
+        - each of those nodes need to run a GlusterFS Pod
+        - On top of that is the Heketi Service Interface Pod
+            - this is what the Kube dynamic provisioner talks to
+    - Demo
+        - shows a video - takes too long has to get off the stage
+        - I think the point was supposed to be self-hosted storage
+
+## The feature formally known as Prince... er PetSet
+Chris Love, Datapipe
+
+- stateful set features
+    - stable network ident
+    - ordinal index for each node
+    - stable storage
+    - startup and teardown
+
+## Crossing the Chasm with Kubernetes
+Joonas Bergius, DigitalOcean
+
+- general call for additional documentation, getting started
+- build tools to help people ease into using Kubernetes
+
+## ContainerOps - Empowering DevOps with container
+Quanyi Ma, Huawei
+
+- devops orchestration for cloud native
+    - defining -> component
+    - drawing -> workflow
+    - running -> action
+- opshub.sh
+    - launched next month
+    - access "devops components"
+- this talk is ununderstandable, the slides don't make sense nor do they align
+  with the sites mentioned
+
+## Cultivating an Engaged Community of K8s advocates through gamification
+Ryan Quackenbush, Apprenda
+
+- K8s port, and how it works
+    - complete challenges, receive points
+- pointing the way to help drive improvements
+    - for example, the current focus is to increase the % of answered questions
+      about Kubernetes on Stack Overflow
+
+# Evening Keynotes (Nov 9)
+
+## Kubernetes
+Kelsey Hightower, Google
+
+- how to think about kuberenetes
+    - you can have a kube cluster with just an API server and a kubelet
+    - add a scheduler which automates assigning objects in the API server to a node
+    - add controller manager to support higher order types
+    - kube proxy to add networking layers
+    - more -> etcd, kube dns, etc
+    - where is the container runtime?
+        - a small part of the individual kubelet processes
+        - overtime you start to ignore the underlying container runtime
+    - are all these layers needed?  is Kubernetes a monolithic stack?
+    - do you need all the parts or can you put it together in a different way?
+- demo
+    - decides to do networking between pods without kube api or kube dns
+    - his endpoints container continuously queries Kube for endpoints
+    - when an endpoint shows up in the kube api it starts sending requests
+      directly to it
+- general theme
+    - Kubernetes is like a computer, or an OS
+    - you can mix and match your pieces
+- demo
+    - he has a binary called hello-universe which supports deploying itself to
+      Kubernetes
+    - its pretty clever
+- idea
+    - create true cluster aware applications that can run themselves in the
+      cluster
+
+## Kubernetes - 1.4 and Beyond
+David Aronchick, Google
+
+- Give everyone the power to run agile, reliable, distributed systems at scale.
+- Kube 1.4
+    - Significant setup and management simplification
+        - `kubeadm` = two commands, no bash
+            - `kubeadm init`
+            - initializes the kube master
+            - returns a `kubeadm join --token TOKEN MASTER_IP` to configure
+                another machine
+        - networking
+            - new CNI stuff to make setting up overlay networks easier
+    - Rich cross-cluster federation
+        - multi-region, multi-datacenter & hybrid cloud deployments
+        - federated replication controllers & ingress
+        - deploy federation api master into a cluster, then join other clusers
+          to the federated master
+    - Simplified installation for common apps using Helm charts
+        - today rolling out apps is pretty manual - have to usually create a
+          bunch of specs and related to deploy the docker containers in the
+          right order
+        - Helm provides pre-built apps for running in Kube
+            - eg. `helm install jenkins`
+    - new updates to the UI
+        - want a single pane of glass
+        - new ui for Kubernetes dashboard
+- whats next
+    - advanced deployment
+        - kubeadm beta
+        - non-distruptive system maintenance
+    - best place for all apps
+        - stateful workloads
+        - better scheduling
+    - more federated clusters
+        - daemonsets, deployments
+        - cluster level metric based scheduling
+
+## SDI: Delivering the efficiencies of the world's largest clouds to everyone
+Jonathan H. Donaldson, Intel
+
+- SDI -> software defined infrastructure
+    - each application defines the system
+    - self-aware, self-provisioning, self-healing
+    - pooled hardware resources are automatically provisioned and managed to
+      meet SLAs
+- from innovative idea to production service
+    - goal: in < 1 day
+- Intel built the CNCF community cluster
+    - 1k node cluster
+    - optimize for scale
+    - accepts projects that will upstream code and benefit the industry
+    - https://github.com/cncf/cluster
+
+## Accelerating transformation to cloud native on converged ICT infra
+Ying Xiong, Chief Architect of Cloud Platform, Huawei Technologies
+
+- Huawei has cloud native applications
+- what is a native cloud application?
+    - elastic infra
+    - scale on-demand
+    - autonomic, fault tolerant
+    - micro-service arch
+    - containerization
+- Huawei has a "all cloud strategy"
+- ICT converged container networking
+    - performance optimization
+    - large scale network SLA/QoS monitoring
+        - support 1K SLA policy
+    - Hybrid network provisioning
+- ContainerOps
+    - framework for defining CI/CD pipelines
+
+## Monitoring Kubernetes Clusters with Prometheus
+Fabian Reinartz, CoreOS
+
+- Monitoring Challenges
+    - a lot of targets to monitor
+    - targets constantly change
+    - need high-level overview
+        - by namespace, service
+    - need to drill down for investigation
+- Prometheus
+    - pull-based monitoring solution
+    - similar to borgmon which is google's solution to large scale monitoring
+    - multi-dimensional data model (tags)
+    - handles millions of time series per instance
+    - metric, tags (key=val), measurement (number)
+    - all data is stored raw - no pre-aggregation
+- powerful querying
+    - 99th percentile latency on API server ops per resource
+        ```
+            histogram_quantile(0.99,
+                sum by(path, le) (rate(request_latency_seconds_bucket[5m]))
+            )
+        ```
+    - is any disk full within 4 hours?
+        ```
+            ALERT DiskWillFillIn4Hours
+                IF predict_linear(node_filesystem_free[1h], 4*3600) < 0
+        ```
+- Kube integration
+    - always sync monitoring targets with Kube API
+    - use meta information to enrich metrics
+    - Prometheus monitors Kube for changes to monitoring targets, updates
+      automatically
+- metrics of Kube
+    - etcd cluster
+    - kube-state-metrics
+        - small utility to expose business logic metrics
+        - ex. deployment is not something real (more of a meta object)
+            - but we want metrics on it
+    - api server
+    - "node exporter"
+    - cAdvisor
+        - container level metrics for every container running in the infra
+    - kubelet
+- managed deployments
+    - prometheus operator handles deploying and managing prometheus in a cluster
+- monitoring as a cluster feature
+    - the Prometheus operator also includes a ServiceMonitor type which allows
+      you to select resources in your cluster and endpoints on those resources
+    - as pods match the selector the pods will automatically be connected into
+      Prometheus as targets
+
+## Distributed Systems Simplified using Kubernetes
+Brandon Philips, CTO, CoreOS
+
+- scaling complex applications
+    - creating a database is easy on Kubernetes
+    - persistent volumes, stateful set, etc
+- managing a distributed system is hard
+    - resize/upgrade - coordination for availability
+    - reconfigure
+    - healing
+    - backup
+- Introducing Operators
+    - An Op represents human operational knowledge in software, to reliably
+      manage a distributed system
+- etcd operator
+    - distributed kv store
+    - deploy a distributed etcd database in the cluster
+    - operators go through "observe, analyze, act"
+    - future work
+        - easy HA setup in Kubernetes
+
+## Kubernetes: As Seen On TV
+Erik St. Martin, Systems Architect, Comcast
+
+- how does cable work?
+    - "community attenna tv"
+    - "ran coax cable from an antenna on a mountain"
+    - multiplex many channels over the same analog frequency
+    - CAP-1000 hardware takes multiple video streams, injecting localized ads
+      and multiplexes all streams together, encrypts them and sends them out to
+      smaller locations (hub sites)
+    - APEX-1000 monitors incoming streams and modulates the multiplexed stream
+      onto a 6MHz stream
+    - optical streams are sent to individual neighborhoods
+    - converted to coax at last hop to house
+    - in a single coax cable is all channels at all times
+    - 3 Gbps through the coax cable
+- Comcast stats
+    - 4 DCs
+    - 30+ CRANs / regional DCs
+    - 1000+ hub sites
+    - 5000+ servers/blades
+- switching to IP based set-top boxes
+    - uses MPEG-DASH to selectively grabbing data from a stream on demand and
+      streaming it over IP
+    - reasons:
+        - reducing bandwidth
+        - more content
+        - more formats
+        - more devices
+        - ubiquitous IP network
+    - they are in the process of replacing the CAP-1000 hardware with software
+      that grabs the IP based streams and then multiplexing it onto the legacy
+      coax based network explained above
+    - requirements for this change
+        - HA, no single point of failure
+        - stream / hubsite affinity
+        - static ips
+            - source specific multicast
+        - live updates to stream config
+        - real time CPU
+        - deterministic software updates
+        - easy debugging/troubleshooting
+        - monitoring and alerting
+        - Ops tools
+- solution is Kubernetes
+    - they use third party resources to define a stream resource to define
+      multiplex'ed channels
+    - "stream spec"
+    - stream controller watches Kube API for changes to the stream specs
+        - creates a config map for each stream
+        - creates a RS for the stream agent and the Streamer processes with the
+          config map mounted
+            - agent monitors the config map volume and updates
+              monitoring/alerting systems. also updates the streamer process
+              with new information
+    - one kube cluster per CRAN (region area)
+    - uses the Kube scheduler + affinity to deal with pushing things to the
+      right places and ensuring correct HA
+    - stumbling blocks
+        - CPU real time priority
+            - streamer requires RT
+            - cpu.rt_runtime must be considered while scheduling
+            - cpu_rt_runtime defaults to 0 in Docker
+            - Kube has no knowledge of this feature
+        - source specific multicase / networking
+            - requires static IP for APEX
+            - IP must be pre-assigned
+            - Layer 3
+            - Bandwidth based scheduling
+- closing
+    - not just an orchestration platform
+    - can be used as a framework for building distributed systems
+    - tons of great patterns
